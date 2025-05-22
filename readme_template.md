@@ -68,7 +68,7 @@ Password: Demo123!
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/taskmind.git
+   git clone https://github.com/mtogi/taskmind.git
    cd taskmind
    ```
 
@@ -267,7 +267,7 @@ POST /api/ai/generate-subtasks   # Subtask generation
 - Mobile keyboard may occasionally cover input fields (iOS Safari)
 - Large task lists (500+) may experience slower rendering
 
-See [Issues](https://github.com/yourusername/taskmind/issues) for current bug reports and feature requests.
+See [Issues](https://github.com/mtogi/taskmind/issues) for current bug reports and feature requests.
 
 ## 📈 Roadmap
 
@@ -291,8 +291,8 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 **Mustafa Toygar Baykal**
 - Email: mtoygarby@gmail.com
-- LinkedIn: [Mustafa Toygar Baykal](https://linkedin.com/in/mustafa-toygar-baykal)
-- GitHub: [@yourusername](https://github.com/yourusername)
+- LinkedIn: [Mustafa Toygar Baykal](https://linkedin.com/in/mbaykal)
+- GitHub: [@mtogi](https://github.com/mtogi)
 - Portfolio: [Coming Soon]
 
 ## 🙏 Acknowledgments
@@ -307,8 +307,8 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 If you have any questions or need help with the project:
 
 1. Check the [documentation](./docs/)
-2. Search [existing issues](https://github.com/yourusername/taskmind/issues)
-3. Create a [new issue](https://github.com/yourusername/taskmind/issues/new)
+2. Search [existing issues](https://github.com/mtogi/taskmind/issues)
+3. Create a [new issue](https://github.com/mtogi/taskmind/issues/new)
 4. Contact me directly at mtoygarby@gmail.com
 
 ---
