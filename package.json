@@ -1,0 +1,58 @@
+{
+  "name": "taskmind",
+  "version": "1.0.0",
+  "description": "An AI-powered task management application that transforms how you organize and prioritize your work through intelligent automation and natural language processing.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "start": "concurrently \"npm run server:start\" \"npm run client:start\"",
+    "build": "npm run client:build && npm run server:build",
+    "test": "concurrently \"npm run server:test\" \"npm run client:test\"",
+    "client:dev": "cd client && npm start",
+    "client:start": "cd client && npm run build && serve -s build",
+    "client:build": "cd client && npm run build",
+    "client:test": "cd client && npm test",
+    "client:install": "cd client && npm install",
+    "server:dev": "cd server && npm run dev",
+    "server:start": "cd server && npm start",
+    "server:build": "cd server && npm run build",
+    "server:test": "cd server && npm test",
+    "server:install": "cd server && npm install",
+    "install:all": "npm install && npm run client:install && npm run server:install",
+    "setup": "npm run install:all",
+    "lint": "concurrently \"npm run client:lint\" \"npm run server:lint\"",
+    "client:lint": "cd client && npm run lint",
+    "server:lint": "cd server && npm run lint",
+    "seed": "cd server && npm run seed",
+    "deploy:client": "cd client && npm run build && vercel --prod",
+    "deploy:server": "cd server && railway up"
+  },
+  "keywords": [
+    "task-management",
+    "ai",
+    "productivity",
+    "react",
+    "nodejs",
+    "mongodb",
+    "openai",
+    "full-stack"
+  ],
+  "author": "Mustafa Toygar Baykal",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mtogi/taskmind.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mtogi/taskmind/issues"
+  },
+  "homepage": "https://github.com/mtogi/taskmind#readme",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "serve": "^14.2.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+} 
