@@ -8,16 +8,16 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^14.4.3",
     "axios": "^1.4.0",
+    "clsx": "^1.2.1",
+    "date-fns": "^2.30.0",
+    "framer-motion": "^10.12.16",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.11.2",
     "react-hook-form": "^7.44.3",
-    "react-query": "^3.39.3",
     "react-hot-toast": "^2.4.1",
-    "react-icons": "^4.9.0",
-    "date-fns": "^2.30.0",
-    "clsx": "^1.2.1",
-    "framer-motion": "^10.12.16",
+    "react-icons": "^4.12.0",
+    "react-query": "^3.39.3",
+    "react-router-dom": "^6.11.2",
     "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4"
   },
@@ -67,4 +67,4 @@
     "nth-check": "^2.1.1",
     "svgo": "^3.0.0"
   }
-} 
+}
