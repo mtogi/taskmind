@@ -62,5 +62,9 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://localhost:5000"
+  "proxy": "http://localhost:5000",
+  "overrides": {
+    "nth-check": "^2.1.1",
+    "svgo": "^3.0.0"
+  }
 } 
