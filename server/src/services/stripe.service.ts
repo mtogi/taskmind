@@ -3,7 +3,7 @@ import config from '../config/config';
 
 // Initialize Stripe
 const stripe = new Stripe(config.stripe.secretKey, {
-  apiVersion: '2023-10-16',
+  apiVersion: '2022-11-15',
 });
 
 // Create a new customer in Stripe

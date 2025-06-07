@@ -125,3 +125,104 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [shadcn/ui](https://ui.shadcn.com/)
 - [Framer Motion](https://www.framer.com/motion/)
 - [Lucide Icons](https://lucide.dev/)
+
+## Recent Implementations
+
+We've recently added several key features to the TaskMind application:
+
+1. **Enhanced Calendar View**: Added a comprehensive calendar view that displays tasks based on their due dates with status indicators and priority badges.
+
+2. **Natural Language Task Input**: Implemented a powerful natural language task input component that can parse free-text descriptions into structured task data using OpenAI integration.
+
+3. **Email Notification System**: Added a complete email notification system for task reminders and user communications with professionally designed email templates.
+
+4. **Security Enhancements**: Implemented rate limiting, XSS protection, parameter pollution prevention, and other security features to protect the application from various attacks.
+
+5. **Logging System**: Added a structured logging system for better error tracking and monitoring of application performance.
+
+## Features
+
+- Task management with prioritization
+- Natural language task input
+- Project organization
+- Calendar view
+- Email notifications
+- User authentication and profile management
+- Subscription management with Stripe
+
+## Tech Stack
+
+### Frontend
+- Next.js with React 19
+- TypeScript
+- Tailwind CSS
+- shadcn/ui components
+
+### Backend
+- Node.js with Express
+- TypeScript
+- PostgreSQL with Prisma ORM
+- JWT authentication
+- OpenAI integration
+- Stripe payment processing
+
+## Getting Started
+
+### Prerequisites
+- Node.js (v18 or higher)
+- npm or yarn
+- PostgreSQL
+
+### Installation
+
+1. Clone the repository
+```bash
+git clone https://github.com/yourusername/taskmind.git
+cd taskmind
+```
+
+2. Install dependencies
+```bash
+npm install --legacy-peer-deps
+```
+
+3. Create .env file in the server directory with the following variables:
+```
+PORT=5000
+NODE_ENV=development
+DATABASE_URL=postgresql://username:password@localhost:5432/taskmind
+JWT_SECRET=your_jwt_secret_key
+JWT_EXPIRES_IN=7d
+OPENAI_API_KEY=your_openai_api_key
+STRIPE_SECRET_KEY=your_stripe_secret_key
+STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
+APP_URL=http://localhost:3000
+ENABLE_SCHEDULER=true
+EMAIL_HOST=smtp.example.com
+EMAIL_PORT=587
+EMAIL_SECURE=false
+EMAIL_USER=your_email_user
+EMAIL_PASSWORD=your_email_password
+EMAIL_FROM=noreply@taskmind.com
+```
+
+4. Run Prisma migrations
+```bash
+cd server
+npx prisma migrate dev
+```
+
+5. Start the development servers
+```bash
+# In Windows
+dev.bat
+
+# In Linux/macOS
+./dev.sh
+
+# Or manually
+npm run dev
+```
+
+## License
+MIT

@@ -90,22 +90,26 @@ export default function LoginPage() {
   }
 
   const loginWithTestAccount = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      await login("test@taskmind.dev", "testpassword123")
+      // Use the test account credentials with our login function
+      // The login function will use the mock API automatically
+      await login("test@taskmind.dev", "testpassword123");
+      
       toast({
         title: "Test login successful",
         description: "You are now using the test account",
-      })
-      router.push("/dashboard")
+      });
+      
+      router.push("/dashboard");
     } catch (error) {
       toast({
         title: "Test login failed",
-        description: "Could not login with test account. Contact administrator.",
+        description: error instanceof Error ? error.message : "Could not login with test account",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 

@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from './generated/prisma';
 import config from './config/config';
 
 // Import routes

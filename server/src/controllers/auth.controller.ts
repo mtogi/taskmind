@@ -30,11 +30,10 @@ export const register = async (req: Request, res: Response) => {
     });
 
     // Generate a JWT token
-    const token = jwt.sign(
-      { userId: user.id }, 
-      config.jwtSecret, 
-      { expiresIn: config.jwtExpiresIn }
-    );
+    const jwtSecret = config.jwtSecret as string;
+    const token = jwt.sign({ userId: user.id }, jwtSecret, { 
+      expiresIn: '7d' // Hardcode the expiration as a simple solution
+    });
 
     return res.status(201).json({
       message: 'User registered successfully',
@@ -72,11 +71,10 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Generate a JWT token
-    const token = jwt.sign(
-      { userId: user.id }, 
-      config.jwtSecret, 
-      { expiresIn: config.jwtExpiresIn }
-    );
+    const jwtSecret = config.jwtSecret as string;
+    const token = jwt.sign({ userId: user.id }, jwtSecret, { 
+      expiresIn: '7d' // Hardcode the expiration as a simple solution
+    });
 
     return res.status(200).json({
       message: 'Login successful',

@@ -81,8 +81,12 @@ const sendTaskReminders = async () => {
 // Stop all scheduled jobs
 export const stopScheduler = () => {
   Object.values(scheduledJobs).forEach(job => {
-    if (job.running) {
+    // Check if the job is running (using a safe way)
+    try {
+      // Just call stop regardless of running state
       job.stop();
+    } catch (error) {
+      console.error('Error stopping cron job:', error);
     }
   });
   

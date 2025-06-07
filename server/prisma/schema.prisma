@@ -27,7 +27,8 @@ model User {
   subscription       Subscription?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
-  projects           Project[]
+  projects           Project[]    @relation("ProjectOwner")
+  memberOfProjects   Project[]    @relation("ProjectMembers")
   tasks              Task[]
   invitations        Invitation[]
 }
@@ -49,7 +50,8 @@ model Project {
   name        String
   description String?
   ownerId     String
-  owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner       User         @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     User[]       @relation("ProjectMembers")
   tasks       Task[]
   collaborators Invitation[]
   createdAt   DateTime     @default(now())

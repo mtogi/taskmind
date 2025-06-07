@@ -1,7 +1,14 @@
 import nodemailer from 'nodemailer';
-import { User } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import config from '../config/config';
 import { formatDistanceToNow } from 'date-fns';
+
+// Define User interface to match the Prisma User model
+interface User {
+  id: string;
+  email: string;
+  name: string;
+}
 
 // Create nodemailer transporter
 const transporter = nodemailer.createTransport({

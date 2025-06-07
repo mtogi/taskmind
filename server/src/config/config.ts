@@ -21,6 +21,10 @@ interface Config {
     password: string;
     from: string;
   };
+  stripe: {
+    secretKey: string;
+    webhookSecret: string;
+  };
 }
 
 const config: Config = {
@@ -40,6 +44,10 @@ const config: Config = {
     user: process.env.EMAIL_USER || '',
     password: process.env.EMAIL_PASSWORD || '',
     from: process.env.EMAIL_FROM || 'noreply@taskmind.com',
+  },
+  stripe: {
+    secretKey: process.env.STRIPE_SECRET_KEY || '',
+    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
   },
 };
 

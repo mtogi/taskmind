@@ -2,8 +2,11 @@
  * API utility functions for interacting with the backend
  */
 
+import { mockApi } from './mock-api';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
+// API options interface
 interface ApiOptions {
   method?: string;
   headers?: Record<string, string>;
@@ -16,47 +19,114 @@ const getToken = (): string | null => {
   return localStorage.getItem('auth_token');
 };
 
+// Function to handle API errors
+const handleApiError = (error: unknown) => {
+  if (error && typeof error === 'object' && 'response' in error) {
+    // The request was made and the server responded with a status code
+    // that falls out of the range of 2xx
+    const { data, status } = error.response as any;
+    return Promise.reject({
+      message: data.message || 'An error occurred',
+      status,
+      data
+    });
+  } else if (error && typeof error === 'object' && 'request' in error) {
+    // The request was made but no response was received
+    console.error('No response received:', (error as any).request);
+    return Promise.reject({
+      message: 'No response from server. Please try again later.',
+      isConnectionError: true
+    });
+  } else {
+    // Something happened in setting up the request that triggered an Error
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+    console.error('Error setting up request:', errorMessage);
+    return Promise.reject({
+      message: errorMessage
+    });
+  }
+};
+
 // Generic API call function
 export const apiCall = async (endpoint: string, options: ApiOptions = {}) => {
-  const token = getToken();
-  
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...options.headers,
+  const url = `${API_BASE_URL}${endpoint}`;
+  const defaultOptions: ApiOptions = {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
   };
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  const token = localStorage.getItem('auth_token');
+  if (token && defaultOptions.headers) {
+    defaultOptions.headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const config: RequestInit = {
-    method: options.method || 'GET',
-    headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
+  const fetchOptions: ApiOptions = {
+    ...defaultOptions,
+    ...options,
+    headers: {
+      ...defaultOptions.headers,
+      ...(options.headers || {}),
+    },
   };
 
+  // Convert body to JSON string if it's an object
+  if (fetchOptions.body && typeof fetchOptions.body === 'object') {
+    fetchOptions.body = JSON.stringify(fetchOptions.body);
+  }
+
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-    const data = await response.json();
-
+    const response = await fetch(url, fetchOptions as RequestInit);
+    
     if (!response.ok) {
-      throw new Error(data.message || 'Something went wrong');
+      const errorData = await response.json().catch(() => ({}));
+      return Promise.reject({
+        message: errorData.message || `Error: ${response.status} ${response.statusText}`,
+        status: response.status,
+        data: errorData
+      });
     }
-
-    return data;
+    
+    return response.json();
   } catch (error) {
-    console.error('API call failed:', error);
-    throw error;
+    return handleApiError(error);
   }
 };
 
 // Auth-related API calls
 export const authApi = {
-  register: (userData: { email: string; password: string; name: string }) => 
-    apiCall('/auth/register', { method: 'POST', body: userData }),
+  register: async (data: { name: string; email: string; password: string }) => {
+    try {
+      return await apiCall('/auth/register', {
+        method: 'POST',
+        body: data,
+      });
+    } catch (error: any) {
+      // If the backend is not available, use mock API
+      if (error.isConnectionError) {
+        console.log('Using mock register');
+        return mockApi.auth.register(data.name, data.email, data.password);
+      }
+      throw error;
+    }
+  },
   
-  login: (credentials: { email: string; password: string }) => 
-    apiCall('/auth/login', { method: 'POST', body: credentials }),
+  login: async (data: { email: string; password: string }) => {
+    try {
+      return await apiCall('/auth/login', {
+        method: 'POST',
+        body: data,
+      });
+    } catch (error: any) {
+      // If the backend is not available, use mock API
+      if (error.isConnectionError && data.email === 'test@taskmind.dev') {
+        console.log('Using mock login for test account');
+        return mockApi.auth.login(data.email, data.password);
+      }
+      throw error;
+    }
+  },
   
   logout: () => {
     if (typeof window !== 'undefined') {
@@ -67,36 +137,48 @@ export const authApi = {
 
 // Task-related API calls
 export const taskApi = {
-  getAllTasks: () => apiCall('/tasks'),
-  
-  getTaskById: (id: string) => apiCall(`/tasks/${id}`),
-  
-  createTask: (taskData: any) => apiCall('/tasks', { method: 'POST', body: taskData }),
-  
-  updateTask: (id: string, taskData: any) => apiCall(`/tasks/${id}`, { method: 'PUT', body: taskData }),
-  
-  deleteTask: (id: string) => apiCall(`/tasks/${id}`, { method: 'DELETE' }),
-  
-  parseTaskText: async (text: string): Promise<{ parsedTask: any }> => {
+  getAllTasks: async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/nlp/parse-task`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: JSON.stringify({ text }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error parsing task text: ${response.statusText}`);
+      return await apiCall('/tasks');
+    } catch (error: any) {
+      // If the backend is not available, use mock API
+      if (error.isConnectionError) {
+        console.log('Using mock tasks data');
+        return mockApi.tasks.getAllTasks();
       }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Failed to parse task text:', error);
       throw error;
     }
+  },
+  
+  getTask: async (id: string) => {
+    return apiCall(`/tasks/${id}`);
+  },
+  
+  createTask: async (data: any) => {
+    return apiCall('/tasks', {
+      method: 'POST',
+      body: data,
+    });
+  },
+  
+  updateTask: async (id: string, data: any) => {
+    return apiCall(`/tasks/${id}`, {
+      method: 'PUT',
+      body: data,
+    });
+  },
+  
+  deleteTask: async (id: string) => {
+    return apiCall(`/tasks/${id}`, {
+      method: 'DELETE',
+    });
+  },
+  
+  parseTaskText: async (text: string): Promise<{ parsedTask: any }> => {
+    return apiCall('/tasks/parse', {
+      method: 'POST',
+      body: { text },
+    });
   },
 };
 
@@ -104,41 +186,51 @@ export const taskApi = {
 export const projectApi = {
   getAllProjects: () => apiCall('/projects'),
   
-  getProjectById: (id: string) => apiCall(`/projects/${id}`),
+  getProject: (id: string) => apiCall(`/projects/${id}`),
   
-  createProject: (projectData: { 
-    name: string; 
-    description?: string;
-    memberIds?: string[];
-  }) => apiCall('/projects', { method: 'POST', body: projectData }),
+  createProject: (data: any) => apiCall('/projects', {
+    method: 'POST',
+    body: data,
+  }),
   
-  updateProject: (id: string, projectData: {
-    name?: string;
-    description?: string;
-    memberIds?: string[];
-  }) => apiCall(`/projects/${id}`, { method: 'PUT', body: projectData }),
+  updateProject: (id: string, data: any) => apiCall(`/projects/${id}`, {
+    method: 'PUT',
+    body: data,
+  }),
   
-  deleteProject: (id: string) => apiCall(`/projects/${id}`, { method: 'DELETE' }),
+  deleteProject: (id: string) => apiCall(`/projects/${id}`, {
+    method: 'DELETE',
+  }),
   
   getProjectStats: (id: string) => apiCall(`/projects/${id}/stats`),
   
-  getProjectTasks: (id: string) => apiCall(`/projects/${id}`)
-    .then(data => data.tasks || []),
+  getProjectTasks: (id: string) => apiCall(`/projects/${id}/tasks`),
+  
+  addMemberToProject: (projectId: string, userId: string) => 
+    apiCall(`/projects/${projectId}/members`, { 
+      method: 'POST', 
+      body: { userId } 
+    }),
+  
+  removeMemberFromProject: (projectId: string, userId: string) => 
+    apiCall(`/projects/${projectId}/members/${userId}`, { 
+      method: 'DELETE' 
+    }),
 };
 
 // User-related API calls
 export const userApi = {
   getProfile: () => apiCall('/user/profile'),
   
-  updateProfile: (profileData: {
-    name?: string;
-    email?: string;
-  }) => apiCall('/user/profile', { method: 'PUT', body: profileData }),
+  updateProfile: (data: any) => apiCall('/user/profile', {
+    method: 'PUT',
+    body: data,
+  }),
   
-  changePassword: (passwordData: {
-    currentPassword: string;
-    newPassword: string;
-  }) => apiCall('/user/change-password', { method: 'PUT', body: passwordData }),
+  changePassword: (data: any) => apiCall('/user/change-password', {
+    method: 'PUT',
+    body: data,
+  }),
   
   updatePreferences: (preferences: {
     emailNotifications?: boolean;
@@ -149,18 +241,16 @@ export const userApi = {
 
 // Subscription-related API calls
 export const subscriptionApi = {
-  getPlans: () => apiCall('/subscription/plans'),
+  getCurrentPlan: () => apiCall('/subscriptions/current'),
   
-  getCurrentSubscription: () => apiCall('/subscription/current'),
+  getPlans: () => apiCall('/subscriptions/plans'),
   
-  createCheckoutSession: (priceId: string) => 
-    apiCall('/subscription/create-checkout-session', { 
-      method: 'POST', 
-      body: { priceId } 
-    }),
+  subscribe: (planId: string) => apiCall('/subscriptions/subscribe', {
+    method: 'POST',
+    body: { planId },
+  }),
   
-  createCustomerPortalSession: () => 
-    apiCall('/subscription/create-portal-session', { 
-      method: 'POST' 
-    }),
+  cancelSubscription: () => apiCall('/subscriptions/cancel', {
+    method: 'POST',
+  }),
 }; 

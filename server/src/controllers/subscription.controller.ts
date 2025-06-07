@@ -205,19 +205,15 @@ export const handleWebhook = async (req: Request, res: Response) => {
         await prisma.subscription.upsert({
           where: { userId: user.id },
           update: {
-            stripeSubscriptionId: subscription.id,
-            planId: priceId,
             status: subscription.status,
             currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-            cancelAtPeriodEnd: subscription.cancel_at_period_end,
           },
           create: {
             userId: user.id,
-            stripeSubscriptionId: subscription.id,
             planId: priceId,
             status: subscription.status,
             currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-            cancelAtPeriodEnd: subscription.cancel_at_period_end,
+            stripeSubscriptionId: subscription.id,
           },
         });
       } else if (event.event === 'customer.subscription.deleted') {

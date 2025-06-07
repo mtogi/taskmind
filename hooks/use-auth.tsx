@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authApi } from '@/lib/api';
+import { mockLogin as mockLoginApi } from '@/lib/mock-api';
 import { useError } from './use-error';
 
 interface User {
@@ -50,6 +51,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     setError(null);
     try {
+      // If using test account, use mock login instead of API call
+      if (email === "test@taskmind.dev") {
+        const mockResponse = await mockLoginApi(email, password);
+        
+        // Save token and user data
+        localStorage.setItem('auth_token', mockResponse.token);
+        localStorage.setItem('user_data', JSON.stringify(mockResponse.user));
+        
+        setUser(mockResponse.user);
+        return;
+      }
+      
       const response = await authApi.login({ email, password });
       const { token, user } = response;
       
