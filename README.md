@@ -42,10 +42,6 @@ TaskMind revolutionizes task management with AI-powered organization, prioritiza
       <br>Tailwind
     </td>
     <td align="center" width="96">
-      <img src="https://static-00.iconduck.com/assets.00/shadcn-icon-512x512-7dvjz1yt.png" width="48" height="48" alt="shadcn/ui" />
-      <br>shadcn/ui
-    </td>
-    <td align="center" width="96">
       <img src="https://skillicons.dev/icons?i=react" width="48" height="48" alt="React" />
       <br>React 19
     </td>
