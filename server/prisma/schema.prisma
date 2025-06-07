@@ -63,6 +63,7 @@ model Task {
   status          String        @default("TODO") // TODO, IN_PROGRESS, DONE
   priority        String        @default("MEDIUM") // LOW, MEDIUM, HIGH
   dueDate         DateTime?
+  reminderSent    Boolean       @default(false)
   assigneeId      String?
   assignee        User?         @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
   projectId       String?

@@ -13,6 +13,7 @@ interface ParsedTask {
   status?: string;
   priority?: string;
   dueDate?: string;
+  projectId?: string;
   tags?: string[];
 }
 
@@ -60,7 +61,39 @@ export const parseTaskText = async (req: Request, res: Response) => {
     // Parse the response from OpenAI
     const parsedTask: ParsedTask = JSON.parse(parsedContent);
 
-    return res.status(200).json(parsedTask);
+    // Convert dueDate to a proper format if it exists
+    if (parsedTask.dueDate) {
+      try {
+        // Validate date format
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (dateRegex.test(parsedTask.dueDate)) {
+          // Ensure it's a valid date
+          const dateObj = new Date(parsedTask.dueDate);
+          if (isNaN(dateObj.getTime())) {
+            // Invalid date, remove it
+            delete parsedTask.dueDate;
+          }
+        } else {
+          // Not in the expected format, remove it
+          delete parsedTask.dueDate;
+        }
+      } catch (error) {
+        // If any error occurs during date processing, remove the dueDate
+        delete parsedTask.dueDate;
+      }
+    }
+
+    // Validate status
+    if (parsedTask.status && !['TODO', 'IN_PROGRESS', 'DONE'].includes(parsedTask.status)) {
+      parsedTask.status = 'TODO';
+    }
+
+    // Validate priority
+    if (parsedTask.priority && !['LOW', 'MEDIUM', 'HIGH'].includes(parsedTask.priority)) {
+      parsedTask.priority = 'MEDIUM';
+    }
+
+    return res.status(200).json({ parsedTask });
   } catch (error) {
     console.error('Error parsing task text:', error);
     return res.status(500).json({ message: 'Error parsing task text.' });

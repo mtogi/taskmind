@@ -77,5 +77,90 @@ export const taskApi = {
   
   deleteTask: (id: string) => apiCall(`/tasks/${id}`, { method: 'DELETE' }),
   
-  parseTaskText: (text: string) => apiCall('/nlp/parse-task', { method: 'POST', body: { text } }),
+  parseTaskText: async (text: string): Promise<{ parsedTask: any }> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/nlp/parse-task`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ text }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error parsing task text: ${response.statusText}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to parse task text:', error);
+      throw error;
+    }
+  },
+};
+
+// Project-related API calls
+export const projectApi = {
+  getAllProjects: () => apiCall('/projects'),
+  
+  getProjectById: (id: string) => apiCall(`/projects/${id}`),
+  
+  createProject: (projectData: { 
+    name: string; 
+    description?: string;
+    memberIds?: string[];
+  }) => apiCall('/projects', { method: 'POST', body: projectData }),
+  
+  updateProject: (id: string, projectData: {
+    name?: string;
+    description?: string;
+    memberIds?: string[];
+  }) => apiCall(`/projects/${id}`, { method: 'PUT', body: projectData }),
+  
+  deleteProject: (id: string) => apiCall(`/projects/${id}`, { method: 'DELETE' }),
+  
+  getProjectStats: (id: string) => apiCall(`/projects/${id}/stats`),
+  
+  getProjectTasks: (id: string) => apiCall(`/projects/${id}`)
+    .then(data => data.tasks || []),
+};
+
+// User-related API calls
+export const userApi = {
+  getProfile: () => apiCall('/user/profile'),
+  
+  updateProfile: (profileData: {
+    name?: string;
+    email?: string;
+  }) => apiCall('/user/profile', { method: 'PUT', body: profileData }),
+  
+  changePassword: (passwordData: {
+    currentPassword: string;
+    newPassword: string;
+  }) => apiCall('/user/change-password', { method: 'PUT', body: passwordData }),
+  
+  updatePreferences: (preferences: {
+    emailNotifications?: boolean;
+    pushNotifications?: boolean;
+    taskReminders?: boolean;
+  }) => apiCall('/user/preferences', { method: 'PUT', body: preferences }),
+};
+
+// Subscription-related API calls
+export const subscriptionApi = {
+  getPlans: () => apiCall('/subscription/plans'),
+  
+  getCurrentSubscription: () => apiCall('/subscription/current'),
+  
+  createCheckoutSession: (priceId: string) => 
+    apiCall('/subscription/create-checkout-session', { 
+      method: 'POST', 
+      body: { priceId } 
+    }),
+  
+  createCustomerPortalSession: () => 
+    apiCall('/subscription/create-portal-session', { 
+      method: 'POST' 
+    }),
 }; 

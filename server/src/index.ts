@@ -1,6 +1,5 @@
 import express from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
 import morgan from 'morgan';
 import { PrismaClient } from '@prisma/client';
 import config from './config/config';
@@ -9,6 +8,21 @@ import config from './config/config';
 import authRoutes from './routes/auth.routes';
 import taskRoutes from './routes/task.routes';
 import nlpRoutes from './routes/nlp.routes';
+import projectRoutes from './routes/project.routes';
+import subscriptionRoutes from './routes/subscription.routes';
+
+// Import services
+import * as schedulerService from './services/scheduler.service';
+import * as logger from './services/logger.service';
+
+// Import security middleware
+import {
+  apiLimiter,
+  authLimiter,
+  securityHeaders,
+  preventParamPollution,
+  sanitizeData,
+} from './middleware/security.middleware';
 
 // Initialize Prisma client
 export const prisma = new PrismaClient();
@@ -17,16 +31,26 @@ export const prisma = new PrismaClient();
 const app = express();
 const PORT = config.port;
 
-// Middleware
-app.use(helmet());
+// Security middleware
+app.use(securityHeaders);
 app.use(cors());
+
+// Special handling for Stripe webhooks (needs raw body)
+app.use('/api/subscription/webhook', express.raw({ type: 'application/json' }));
+
+// Regular middleware for other routes
 app.use(express.json());
 app.use(morgan('dev'));
+app.use(preventParamPollution); // Prevent parameter pollution
+app.use(sanitizeData); // Sanitize data to prevent XSS
+app.use(logger.httpLogger); // HTTP request logging
 
 // Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/tasks', taskRoutes);
-app.use('/api/nlp', nlpRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/tasks', apiLimiter, taskRoutes);
+app.use('/api/nlp', apiLimiter, nlpRoutes);
+app.use('/api/projects', apiLimiter, projectRoutes);
+app.use('/api/subscription', apiLimiter, subscriptionRoutes);
 
 // Health check route
 app.get('/', (req, res) => {
@@ -35,7 +59,8 @@ app.get('/', (req, res) => {
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
+  logger.logError('Unhandled error in request', err);
+  
   res.status(500).json({
     message: 'An unexpected error occurred',
     error: config.nodeEnv === 'development' ? err.message : 'Internal Server Error'
@@ -44,11 +69,36 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  logger.logInfo(`Server running on port ${PORT}`);
+  
+  // Initialize task scheduler
+  if (config.enableScheduler) {
+    schedulerService.initScheduler();
+    logger.logInfo('Task scheduler initialized');
+  }
 });
 
 // Handle unhandled promise rejections
-process.on('unhandledRejection', (err) => {
-  console.error('Unhandled Rejection:', err);
+process.on('unhandledRejection', (err: any) => {
+  logger.logError('Unhandled Promise Rejection', err);
   process.exit(1);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err: Error) => {
+  logger.logError('Uncaught Exception', err);
+  process.exit(1);
+});
+
+// Handle graceful shutdown
+process.on('SIGTERM', async () => {
+  logger.logInfo('SIGTERM received, shutting down gracefully');
+  
+  // Stop scheduler
+  schedulerService.stopScheduler();
+  
+  // Disconnect Prisma
+  await prisma.$disconnect();
+  
+  process.exit(0);
 }); 

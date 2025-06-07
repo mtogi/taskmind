@@ -11,6 +11,16 @@ interface Config {
   openaiApiKey: string;
   stripeSecretKey: string;
   stripeWebhookSecret: string;
+  appUrl: string;
+  enableScheduler: boolean;
+  email: {
+    host: string;
+    port: number;
+    secure: boolean;
+    user: string;
+    password: string;
+    from: string;
+  };
 }
 
 const config: Config = {
@@ -21,6 +31,16 @@ const config: Config = {
   openaiApiKey: process.env.OPENAI_API_KEY || '',
   stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
+  appUrl: process.env.APP_URL || 'http://localhost:3000',
+  enableScheduler: process.env.ENABLE_SCHEDULER === 'true',
+  email: {
+    host: process.env.EMAIL_HOST || 'smtp.example.com',
+    port: parseInt(process.env.EMAIL_PORT || '587', 10),
+    secure: process.env.EMAIL_SECURE === 'true',
+    user: process.env.EMAIL_USER || '',
+    password: process.env.EMAIL_PASSWORD || '',
+    from: process.env.EMAIL_FROM || 'noreply@taskmind.com',
+  },
 };
 
 export default config; 
