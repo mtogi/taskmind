@@ -20,6 +20,21 @@ async function main() {
   });
 
   console.log(`Created demo user with id: ${demoUser.id}`);
+  
+  // Create a test account for local development
+  const testPasswordHash = await bcrypt.hash('testpassword123', 12);
+  const testUser = await prisma.user.upsert({
+    where: { email: 'test@taskmind.dev' },
+    update: {},
+    create: {
+      email: 'test@taskmind.dev',
+      name: 'Test User',
+      password: testPasswordHash,
+      isEmailVerified: true,
+    },
+  });
+  
+  console.log(`Created test user with id: ${testUser.id}`);
 
   // Create a demo project
   const demoProject = await prisma.project.upsert({
@@ -34,6 +49,20 @@ async function main() {
   });
 
   console.log(`Created demo project with id: ${demoProject.id}`);
+  
+  // Create a test project for the test user
+  const testProject = await prisma.project.upsert({
+    where: { id: 'test-project-id' },
+    update: {},
+    create: {
+      id: 'test-project-id',
+      name: 'Test Project',
+      description: 'This is a test project for development purposes.',
+      ownerId: testUser.id,
+    },
+  });
+  
+  console.log(`Created test project with id: ${testProject.id}`);
 
   // Create some demo tasks
   const demoTasks = [
@@ -83,6 +112,49 @@ async function main() {
       },
     });
     console.log(`Created demo task with id: ${task.id}`);
+  }
+  
+  // Create some test tasks for the test user
+  const testTasks = [
+    {
+      title: 'Complete project setup',
+      description: 'Finish setting up the project structure.',
+      status: 'DONE',
+      priority: 'HIGH',
+      dueDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+    },
+    {
+      title: 'Implement user authentication',
+      description: 'Add user login and registration functionality.',
+      status: 'IN_PROGRESS',
+      priority: 'HIGH',
+      dueDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), // 1 day from now
+    },
+    {
+      title: 'Design UI components',
+      description: 'Create reusable UI components for the application.',
+      status: 'TODO',
+      priority: 'MEDIUM',
+      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
+    },
+    {
+      title: 'Write documentation',
+      description: 'Document the project structure and API endpoints.',
+      status: 'TODO',
+      priority: 'LOW',
+      dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5 days from now
+    },
+  ];
+  
+  for (const taskData of testTasks) {
+    const task = await prisma.task.create({
+      data: {
+        ...taskData,
+        assigneeId: testUser.id,
+        projectId: testProject.id,
+      },
+    });
+    console.log(`Created test task with id: ${task.id}`);
   }
 
   console.log(`Seeding finished.`);

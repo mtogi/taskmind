@@ -153,6 +153,12 @@ export default function Landing() {
 
             <div className="flex items-center space-x-4">
               <Link
+                href="/pricing"
+                className="text-gray-300 hover:text-white hover:bg-white/10 px-4 py-2 rounded-lg transition-colors"
+              >
+                Pricing
+              </Link>
+              <Link
                 href="/login"
                 className="text-gray-300 hover:text-white hover:bg-white/10 px-4 py-2 rounded-lg transition-colors"
               >

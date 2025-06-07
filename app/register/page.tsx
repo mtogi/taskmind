@@ -11,10 +11,12 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function RegisterPage() {
   const router = useRouter()
   const { toast } = useToast()
+  const { register } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   
@@ -63,12 +65,9 @@ export default function RegisterPage() {
     
     setIsLoading(true)
     
-    // In a real app, this would make an API call to your auth endpoint
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await register(formData.name, formData.email, formData.password)
       
-      // For demo purposes, we'll just navigate to the dashboard
       toast({
         title: "Registration successful",
         description: "Welcome to TaskMind!",
@@ -78,7 +77,7 @@ export default function RegisterPage() {
     } catch (error) {
       toast({
         title: "Registration failed",
-        description: "There was an error creating your account",
+        description: error instanceof Error ? error.message : "There was an error creating your account",
         variant: "destructive",
       })
     } finally {
@@ -93,6 +92,11 @@ export default function RegisterPage() {
           <Brain className="h-6 w-6 text-primary" />
           <span className="text-xl tracking-tight">TaskMind</span>
         </Link>
+        <div className="ml-auto flex items-center gap-4">
+          <Link href="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+            Pricing
+          </Link>
+        </div>
       </header>
       <main className="flex-1 flex items-center justify-center p-4">
         <div className="max-w-md w-full space-y-6">

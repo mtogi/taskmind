@@ -3,17 +3,19 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Brain, Eye, EyeOff, Github } from "lucide-react"
+import { Brain, Eye, EyeOff, Github, UserPlus } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function LoginPage() {
   const router = useRouter()
   const { toast } = useToast()
+  const { login } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   
@@ -44,12 +46,8 @@ export default function LoginPage() {
     
     setIsLoading(true)
     
-    // In a real app, this would make an API call to your auth endpoint
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      
-      // For demo purposes, we'll just navigate to the dashboard
+      await login(formData.email, formData.password)
       toast({
         title: "Login successful",
         description: "Welcome back to TaskMind!",
@@ -59,7 +57,27 @@ export default function LoginPage() {
     } catch (error) {
       toast({
         title: "Login failed",
-        description: "Invalid email or password",
+        description: error instanceof Error ? error.message : "Invalid email or password",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const loginWithTestAccount = async () => {
+    setIsLoading(true)
+    try {
+      await login("test@taskmind.dev", "testpassword123")
+      toast({
+        title: "Test login successful",
+        description: "You are now using the test account",
+      })
+      router.push("/dashboard")
+    } catch (error) {
+      toast({
+        title: "Test login failed",
+        description: "Could not login with test account. Contact administrator.",
         variant: "destructive",
       })
     } finally {
@@ -74,6 +92,11 @@ export default function LoginPage() {
           <Brain className="h-6 w-6 text-primary" />
           <span className="text-xl tracking-tight">TaskMind</span>
         </Link>
+        <div className="ml-auto flex items-center gap-4">
+          <Link href="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+            Pricing
+          </Link>
+        </div>
       </header>
       <main className="flex-1 flex items-center justify-center p-4">
         <div className="max-w-md w-full space-y-6">
@@ -82,6 +105,11 @@ export default function LoginPage() {
             <p className="text-sm text-muted-foreground mt-2">Enter your credentials to access your account</p>
           </div>
           <div className="space-y-4">
+            <Button onClick={loginWithTestAccount} variant="outline" className="w-full flex gap-2" disabled={isLoading}>
+              <UserPlus className="h-4 w-4" /> 
+              <span>Use Test Account</span>
+              <span className="text-xs text-muted-foreground ml-1">(test@taskmind.dev)</span>
+            </Button>
             <Button variant="outline" className="w-full" disabled={isLoading}>
               <Github className="mr-2 h-4 w-4" /> Continue with GitHub
             </Button>
