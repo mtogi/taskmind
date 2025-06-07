@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import jwt, { SignOptions } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { prisma } from '../index';
 import config from '../config/config';
@@ -30,8 +30,11 @@ export const register = async (req: Request, res: Response) => {
     });
 
     // Generate a JWT token
-    const signOptions: SignOptions = { expiresIn: config.jwtExpiresIn };
-    const token = jwt.sign({ userId: user.id }, config.jwtSecret, signOptions);
+    const token = jwt.sign(
+      { userId: user.id }, 
+      config.jwtSecret, 
+      { expiresIn: config.jwtExpiresIn }
+    );
 
     return res.status(201).json({
       message: 'User registered successfully',
@@ -69,8 +72,11 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Generate a JWT token
-    const signOptions: SignOptions = { expiresIn: config.jwtExpiresIn };
-    const token = jwt.sign({ userId: user.id }, config.jwtSecret, signOptions);
+    const token = jwt.sign(
+      { userId: user.id }, 
+      config.jwtSecret, 
+      { expiresIn: config.jwtExpiresIn }
+    );
 
     return res.status(200).json({
       message: 'Login successful',

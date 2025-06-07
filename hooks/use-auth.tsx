@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authApi } from '@/lib/api';
+import { useError } from './use-error';
 
 interface User {
   id: string;
@@ -24,6 +25,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const { captureError } = useError();
 
   // Check if user is already logged in
   useEffect(() => {
@@ -38,10 +40,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       } catch (error) {
         console.error('Error parsing user data:', error);
+        captureError(error, 'Failed to restore session');
       }
     }
     setLoading(false);
-  }, []);
+  }, [captureError]);
 
   const login = async (email: string, password: string) => {
     setLoading(true);
@@ -56,7 +59,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       setUser(user);
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Login failed');
+      const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      setError(errorMessage);
+      captureError(error, errorMessage);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -75,7 +81,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       setUser(user);
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Registration failed');
+      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+      setError(errorMessage);
+      captureError(error, errorMessage);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -85,6 +94,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     authApi.logout();
     setUser(null);
     localStorage.removeItem('user_data');
+    localStorage.removeItem('auth_token');
   };
 
   return (

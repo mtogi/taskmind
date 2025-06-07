@@ -24,23 +24,47 @@ export default function LoginPage() {
     password: "",
   })
 
+  // Form validation errors
+  const [errors, setErrors] = useState<{
+    email?: string;
+    password?: string;
+  }>({})
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }))
+    
+    // Clear error when user types
+    if (errors[name as keyof typeof errors]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: undefined
+      }))
+    }
+  }
+
+  const validateForm = () => {
+    const newErrors: typeof errors = {}
+    
+    if (!formData.email || !/^\S+@\S+\.\S+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address"
+    }
+    
+    if (!formData.password) {
+      newErrors.password = "Password is required"
+    }
+    
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.email || !formData.password) {
-      toast({
-        title: "All fields are required",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      })
+    if (!validateForm()) {
       return
     }
     
@@ -133,8 +157,12 @@ export default function LoginPage() {
                 value={formData.email}
                 onChange={handleChange}
                 disabled={isLoading}
+                className={errors.email ? "border-destructive focus-visible:ring-destructive" : ""}
                 required
               />
+              {errors.email && (
+                <p className="text-sm text-destructive mt-1">{errors.email}</p>
+              )}
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -152,6 +180,7 @@ export default function LoginPage() {
                   value={formData.password}
                   onChange={handleChange}
                   disabled={isLoading}
+                  className={errors.password ? "border-destructive focus-visible:ring-destructive" : ""}
                   required
                 />
                 <button
@@ -162,6 +191,9 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {errors.password && (
+                <p className="text-sm text-destructive mt-1">{errors.password}</p>
+              )}
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign In"}

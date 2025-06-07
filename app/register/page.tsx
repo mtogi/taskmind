@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Brain, Check, Eye, EyeOff, Github } from "lucide-react"
+import { Brain, Eye, EyeOff, Github } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,12 +27,28 @@ export default function RegisterPage() {
     agreedToTerms: false,
   })
 
+  // Form validation errors
+  const [errors, setErrors] = useState<{
+    name?: string;
+    email?: string;
+    password?: string;
+    agreedToTerms?: string;
+  }>({})
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }))
+    
+    // Clear error when user types
+    if (errors[name as keyof typeof errors]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: undefined
+      }))
+    }
   }
 
   const handleCheckboxChange = (checked: boolean) => {
@@ -40,26 +56,43 @@ export default function RegisterPage() {
       ...prev,
       agreedToTerms: checked,
     }))
+    
+    // Clear error when user checks
+    if (errors.agreedToTerms) {
+      setErrors(prev => ({
+        ...prev,
+        agreedToTerms: undefined
+      }))
+    }
+  }
+
+  const validateForm = () => {
+    const newErrors: typeof errors = {}
+    
+    if (!formData.name || formData.name.length < 2) {
+      newErrors.name = "Name must be at least 2 characters"
+    }
+    
+    if (!formData.email || !/^\S+@\S+\.\S+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address"
+    }
+    
+    if (!formData.password || formData.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters"
+    }
+    
+    if (!formData.agreedToTerms) {
+      newErrors.agreedToTerms = "You must agree to the terms and conditions"
+    }
+    
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.name || !formData.email || !formData.password) {
-      toast({
-        title: "All fields are required",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (!formData.agreedToTerms) {
-      toast({
-        title: "Agreement required",
-        description: "Please agree to the terms and conditions",
-        variant: "destructive",
-      })
+    if (!validateForm()) {
       return
     }
     
@@ -127,8 +160,11 @@ export default function RegisterPage() {
                 value={formData.name}
                 onChange={handleChange}
                 disabled={isLoading}
-                required
+                className={errors.name ? "border-destructive focus-visible:ring-destructive" : ""}
               />
+              {errors.name && (
+                <p className="text-sm text-destructive mt-1">{errors.name}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -140,8 +176,11 @@ export default function RegisterPage() {
                 value={formData.email}
                 onChange={handleChange}
                 disabled={isLoading}
-                required
+                className={errors.email ? "border-destructive focus-visible:ring-destructive" : ""}
               />
+              {errors.email && (
+                <p className="text-sm text-destructive mt-1">{errors.email}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
@@ -154,7 +193,7 @@ export default function RegisterPage() {
                   value={formData.password}
                   onChange={handleChange}
                   disabled={isLoading}
-                  required
+                  className={errors.password ? "border-destructive focus-visible:ring-destructive" : ""}
                 />
                 <button
                   type="button"
@@ -164,15 +203,18 @@ export default function RegisterPage() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Must be at least 8 characters long
-              </p>
+              {errors.password ? (
+                <p className="text-sm text-destructive mt-1">{errors.password}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-1">Must be at least 8 characters long</p>
+              )}
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox 
                 id="terms" 
                 checked={formData.agreedToTerms}
                 onCheckedChange={handleCheckboxChange}
+                className={errors.agreedToTerms ? "border-destructive text-destructive" : ""}
               />
               <label
                 htmlFor="terms"
@@ -184,6 +226,9 @@ export default function RegisterPage() {
                 </Link>
               </label>
             </div>
+            {errors.agreedToTerms && (
+              <p className="text-sm text-destructive mt-1">{errors.agreedToTerms}</p>
+            )}
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Creating account..." : "Create account"}
             </Button>

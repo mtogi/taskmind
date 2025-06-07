@@ -7,7 +7,7 @@ interface Config {
   port: number;
   nodeEnv: string;
   jwtSecret: string;
-  jwtExpiresIn: string;
+  jwtExpiresIn: string | number;
   openaiApiKey: string;
   stripeSecretKey: string;
   stripeWebhookSecret: string;
