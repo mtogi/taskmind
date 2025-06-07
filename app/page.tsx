@@ -135,27 +135,6 @@ export default function Landing() {
     },
   ]
 
-  const testimonials = [
-    {
-      name: "Sarah Johnson",
-      role: "Product Manager",
-      content: "TaskMind has revolutionized how I manage my daily tasks. The AI features are incredibly intuitive.",
-      rating: 5,
-    },
-    {
-      name: "Michael Chen",
-      role: "Software Developer",
-      content: "Finally, a task management tool that understands context. The natural language processing is amazing.",
-      rating: 5,
-    },
-    {
-      name: "Emily Rodriguez",
-      role: "Marketing Director",
-      content: "The intelligent prioritization has helped me optimize my workflow like never before.",
-      rating: 5,
-    },
-  ]
-
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Moving Stars Effect */}
@@ -329,40 +308,6 @@ export default function Landing() {
               <div className="text-4xl font-bold mb-2 text-white">24/7</div>
               <div className="text-gray-400">Support</div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="py-20 bg-zinc-900/50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Loved by thousands of users</h2>
-            <p className="text-lg text-gray-400">See what our community has to say about TaskMind</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                viewport={{ once: true }}
-                className="bg-zinc-800/50 border border-white/10 p-6 rounded-xl hover:bg-zinc-800/80 transition-colors"
-              >
-                <div className="flex items-center mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
-                  ))}
-                </div>
-                <p className="text-gray-300 mb-4">"{testimonial.content}"</p>
-                <div>
-                  <div className="font-semibold text-white">{testimonial.name}</div>
-                  <div className="text-sm text-gray-400">{testimonial.role}</div>
-                </div>
-              </motion.div>
-            ))}
           </div>
         </div>
       </section>
