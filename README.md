@@ -140,6 +140,10 @@ We've recently added several key features to the TaskMind application:
 
 5. **Logging System**: Added a structured logging system for better error tracking and monitoring of application performance.
 
+6. **Mock API System**: Implemented a comprehensive mock API system that allows the frontend to function without a running backend server, perfect for development and demonstration.
+
+7. **Test Account Functionality**: Added a robust test account system that works offline, allowing users to test the application without setting up the backend.
+
 ## Features
 
 - Task management with prioritization
@@ -149,6 +153,42 @@ We've recently added several key features to the TaskMind application:
 - Email notifications
 - User authentication and profile management
 - Subscription management with Stripe
+
+## Quick Test
+
+The easiest way to try TaskMind is to use our test account:
+
+1. Navigate to the login page at `/login`
+2. Click on the "Use Test Account" button
+3. You'll be automatically logged in using our test credentials:
+   - Email: test@taskmind.dev
+   - Password: testpassword123
+
+Alternatively, you can go directly to `/test-login` for a simplified login experience.
+
+## Development Features
+
+### Mock API System
+
+For development purposes, we've implemented a mock API system that allows the frontend to function without requiring the backend server to be running:
+
+- Located in `lib/mock-api.ts`
+- Provides mock implementations of authentication, tasks, and other API functions
+- Automatically used as a fallback when the backend is unavailable
+- Great for frontend-only development and demonstrations
+
+To use the mock API:
+1. Simply run the frontend without starting the backend server
+2. The application will automatically detect connection issues and use mock data
+3. Use the test account credentials to log in
+
+### Offline Development
+
+You can develop and test most frontend features without running the backend server:
+
+1. Start only the frontend with `npm run dev`
+2. Use the test account to log in
+3. All basic functionality will work with mock data
 
 ## Tech Stack
 
