@@ -70,10 +70,13 @@ export default function NaturalLanguageTaskInput({
       // For demo, create a simple parsed task
       setParsedTask({
         title: input,
+        description: "",
         priority: input.includes("urgent") || input.includes("important") 
           ? "HIGH" 
           : "MEDIUM",
-        status: "TODO"
+        status: "TODO",
+        dueDate: undefined,
+        projectId: undefined
       })
     } finally {
       setIsParsing(false)
@@ -192,7 +195,7 @@ export default function NaturalLanguageTaskInput({
               <div>
                 <Label htmlFor="task-status">Status</Label>
                 <Select 
-                  value={parsedTask.status || 'TODO'} 
+                  value={parsedTask?.status || 'TODO'} 
                   onValueChange={(value) => updateParsedTask('status', value)}
                 >
                   <SelectTrigger id="task-status">
@@ -209,7 +212,7 @@ export default function NaturalLanguageTaskInput({
               <div>
                 <Label htmlFor="task-priority">Priority</Label>
                 <Select 
-                  value={parsedTask.priority || 'MEDIUM'} 
+                  value={parsedTask?.priority || 'MEDIUM'} 
                   onValueChange={(value) => updateParsedTask('priority', value)}
                 >
                   <SelectTrigger id="task-priority">
@@ -242,7 +245,7 @@ export default function NaturalLanguageTaskInput({
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
-                      selected={parsedTask.dueDate}
+                      selected={parsedTask?.dueDate || undefined}
                       onSelect={(date) => updateParsedTask('dueDate', date)}
                       initialFocus
                     />

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 
@@ -124,6 +125,7 @@ export default function LoginPage() {
           <Link href="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground">
             Pricing
           </Link>
+          <ThemeToggle />
         </div>
       </header>
       <main className="flex-1 flex items-center justify-center p-4">

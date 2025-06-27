@@ -10,7 +10,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getProjectStats = exports.deleteProject = exports.updateProject = exports.createProject = exports.getProjectById = exports.getProjects = void 0;
-const index_1 = require("../index");
+const uuid_1 = require("uuid");
+const queries_1 = require("../database/queries");
 // Get all projects for the authenticated user
 const getProjects = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
@@ -19,38 +20,7 @@ const getProjects = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         if (!userId) {
             return res.status(401).json({ message: 'Authentication required.' });
         }
-        const projects = yield index_1.prisma.project.findMany({
-            where: {
-                OR: [
-                    { ownerId: userId },
-                    { members: { some: { id: userId } } },
-                ],
-            },
-            include: {
-                owner: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                    },
-                },
-                members: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                    },
-                },
-                _count: {
-                    select: {
-                        tasks: true,
-                    },
-                },
-            },
-            orderBy: {
-                createdAt: 'desc',
-            },
-        });
+        const projects = yield queries_1.projectQueries.findByUserId(userId);
         return res.status(200).json(projects);
     }
     catch (error) {
@@ -68,49 +38,21 @@ const getProjectById = (req, res) => __awaiter(void 0, void 0, void 0, function*
         if (!userId) {
             return res.status(401).json({ message: 'Authentication required.' });
         }
-        const project = yield index_1.prisma.project.findFirst({
-            where: {
-                id,
-                OR: [
-                    { ownerId: userId },
-                    { members: { some: { id: userId } } },
-                ],
-            },
-            include: {
-                owner: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                    },
-                },
-                members: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                    },
-                },
-                tasks: {
-                    orderBy: {
-                        createdAt: 'desc',
-                    },
-                    include: {
-                        assignee: {
-                            select: {
-                                id: true,
-                                name: true,
-                                email: true,
-                            },
-                        },
-                    },
-                },
-            },
-        });
+        const project = yield queries_1.projectQueries.findById(id);
         if (!project) {
             return res.status(404).json({ message: 'Project not found.' });
         }
-        return res.status(200).json(project);
+        // Check if user has access to the project
+        const members = yield queries_1.projectQueries.getMembers(id);
+        const hasAccess = project.owner_id === userId || members.some(member => member.id === userId);
+        if (!hasAccess) {
+            return res.status(403).json({ message: 'Access denied.' });
+        }
+        // Get project tasks
+        const tasks = yield queries_1.taskQueries.findByProjectId(id);
+        const projectWithTasks = Object.assign(Object.assign({}, project), { tasks,
+            members });
+        return res.status(200).json(projectWithTasks);
     }
     catch (error) {
         console.error('Error fetching project:', error);
@@ -131,39 +73,22 @@ const createProject = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         if (!name || name.trim() === '') {
             return res.status(400).json({ message: 'Project name is required.' });
         }
-        // Prepare member connections if provided
-        const memberConnections = memberIds && memberIds.length > 0
-            ? {
-                connect: memberIds.map((id) => ({ id })),
-            }
-            : undefined;
-        const project = yield index_1.prisma.project.create({
-            data: {
-                name,
-                description,
-                owner: {
-                    connect: { id: userId },
-                },
-                members: memberConnections,
-            },
-            include: {
-                owner: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                    },
-                },
-                members: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                    },
-                },
-            },
+        const project = yield queries_1.projectQueries.create({
+            id: (0, uuid_1.v4)(),
+            name,
+            description,
+            owner_id: userId,
         });
-        return res.status(201).json(project);
+        // Add members if provided
+        if (memberIds && memberIds.length > 0) {
+            for (const memberId of memberIds) {
+                yield queries_1.projectQueries.addMember(project.id, memberId);
+            }
+        }
+        // Get the created project with members
+        const members = yield queries_1.projectQueries.getMembers(project.id);
+        const projectWithMembers = Object.assign(Object.assign({}, project), { members });
+        return res.status(201).json(projectWithMembers);
     }
     catch (error) {
         console.error('Error creating project:', error);
@@ -182,49 +107,41 @@ const updateProject = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             return res.status(401).json({ message: 'Authentication required.' });
         }
         // Check if the project exists and user is the owner
-        const existingProject = yield index_1.prisma.project.findFirst({
-            where: {
-                id,
-                ownerId: userId,
-            },
-        });
+        const existingProject = yield queries_1.projectQueries.findById(id);
         if (!existingProject) {
-            return res.status(404).json({
-                message: 'Project not found or you do not have permission to update it.'
+            return res.status(404).json({ message: 'Project not found.' });
+        }
+        if (existingProject.owner_id !== userId) {
+            return res.status(403).json({
+                message: 'You do not have permission to update this project.'
             });
         }
-        // Prepare member connections if provided
-        let memberUpdateOperation;
-        if (memberIds) {
-            memberUpdateOperation = {
-                set: memberIds.map((id) => ({ id })),
-            };
+        // Update project
+        const updates = {};
+        if (name !== undefined)
+            updates.name = name;
+        if (description !== undefined)
+            updates.description = description;
+        const updatedProject = yield queries_1.projectQueries.update(id, updates);
+        if (!updatedProject) {
+            return res.status(404).json({ message: 'Project not found.' });
         }
-        const updatedProject = yield index_1.prisma.project.update({
-            where: { id },
-            data: {
-                name,
-                description,
-                members: memberUpdateOperation,
-            },
-            include: {
-                owner: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                    },
-                },
-                members: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                    },
-                },
-            },
-        });
-        return res.status(200).json(updatedProject);
+        // Update members if provided
+        if (memberIds) {
+            // Remove all current members
+            const currentMembers = yield queries_1.projectQueries.getMembers(id);
+            for (const member of currentMembers) {
+                yield queries_1.projectQueries.removeMember(id, member.id);
+            }
+            // Add new members
+            for (const memberId of memberIds) {
+                yield queries_1.projectQueries.addMember(id, memberId);
+            }
+        }
+        // Get updated project with members
+        const members = yield queries_1.projectQueries.getMembers(id);
+        const projectWithMembers = Object.assign(Object.assign({}, updatedProject), { members });
+        return res.status(200).json(projectWithMembers);
     }
     catch (error) {
         console.error('Error updating project:', error);
@@ -242,27 +159,19 @@ const deleteProject = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             return res.status(401).json({ message: 'Authentication required.' });
         }
         // Check if the project exists and user is the owner
-        const existingProject = yield index_1.prisma.project.findFirst({
-            where: {
-                id,
-                ownerId: userId,
-            },
-        });
+        const existingProject = yield queries_1.projectQueries.findById(id);
         if (!existingProject) {
-            return res.status(404).json({
-                message: 'Project not found or you do not have permission to delete it.'
+            return res.status(404).json({ message: 'Project not found.' });
+        }
+        if (existingProject.owner_id !== userId) {
+            return res.status(403).json({
+                message: 'You do not have permission to delete this project.'
             });
         }
-        // Delete all tasks associated with the project first
-        yield index_1.prisma.task.deleteMany({
-            where: {
-                projectId: id,
-            },
-        });
-        // Delete the project
-        yield index_1.prisma.project.delete({
-            where: { id },
-        });
+        const deleted = yield queries_1.projectQueries.delete(id);
+        if (!deleted) {
+            return res.status(404).json({ message: 'Project not found.' });
+        }
         return res.status(200).json({ message: 'Project deleted successfully.' });
     }
     catch (error) {
@@ -280,73 +189,31 @@ const getProjectStats = (req, res) => __awaiter(void 0, void 0, void 0, function
         if (!userId) {
             return res.status(401).json({ message: 'Authentication required.' });
         }
-        // Check if the project exists and user has access
-        const existingProject = yield index_1.prisma.project.findFirst({
-            where: {
-                id,
-                OR: [
-                    { ownerId: userId },
-                    { members: { some: { id: userId } } },
-                ],
-            },
-        });
-        if (!existingProject) {
+        const project = yield queries_1.projectQueries.findById(id);
+        if (!project) {
             return res.status(404).json({ message: 'Project not found.' });
         }
-        // Get task counts by status
-        const taskStats = yield index_1.prisma.task.groupBy({
-            by: ['status'],
-            where: {
-                projectId: id,
-            },
-            _count: {
-                status: true,
-            },
-        });
-        // Get task counts by priority
-        const priorityStats = yield index_1.prisma.task.groupBy({
-            by: ['priority'],
-            where: {
-                projectId: id,
-            },
-            _count: {
-                priority: true,
-            },
-        });
-        // Get count of overdue tasks
-        const now = new Date();
-        const overdueTasksCount = yield index_1.prisma.task.count({
-            where: {
-                projectId: id,
-                dueDate: {
-                    lt: now,
-                },
-                status: {
-                    not: 'DONE',
-                },
-            },
-        });
-        // Format the statistics
-        const statistics = {
-            tasksByStatus: taskStats.reduce((acc, curr) => {
-                acc[curr.status] = curr._count.status;
-                return acc;
-            }, {}),
-            tasksByPriority: priorityStats.reduce((acc, curr) => {
-                acc[curr.priority] = curr._count.priority;
-                return acc;
-            }, {}),
-            overdueTasks: overdueTasksCount,
-            totalTasks: yield index_1.prisma.task.count({
-                where: {
-                    projectId: id,
-                },
-            }),
+        // Check if user has access to the project
+        const members = yield queries_1.projectQueries.getMembers(id);
+        const hasAccess = project.owner_id === userId || members.some(member => member.id === userId);
+        if (!hasAccess) {
+            return res.status(403).json({ message: 'Access denied.' });
+        }
+        // Get project tasks
+        const tasks = yield queries_1.taskQueries.findByProjectId(id);
+        // Calculate statistics
+        const stats = {
+            totalTasks: tasks.length,
+            completedTasks: tasks.filter(task => task.status === 'DONE').length,
+            inProgressTasks: tasks.filter(task => task.status === 'IN_PROGRESS').length,
+            pendingTasks: tasks.filter(task => task.status === 'TODO').length,
+            highPriorityTasks: tasks.filter(task => task.priority === 'HIGH').length,
+            overdueTasks: tasks.filter(task => task.due_date && new Date(task.due_date) < new Date() && task.status !== 'DONE').length,
         };
-        return res.status(200).json(statistics);
+        return res.status(200).json(stats);
     }
     catch (error) {
-        console.error('Error fetching project statistics:', error);
+        console.error('Error fetching project stats:', error);
         return res.status(500).json({ message: 'Error fetching project statistics.' });
     }
 });

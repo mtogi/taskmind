@@ -43,7 +43,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handleWebhook = exports.getCurrentSubscription = exports.createCustomerPortalSession = exports.createCheckoutSession = exports.getPlans = void 0;
-const index_1 = require("../index");
+const uuid_1 = require("uuid");
+const queries_1 = require("../database/queries");
 const stripeService = __importStar(require("../services/stripe.service"));
 // Get available subscription plans
 const getPlans = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -82,21 +83,16 @@ const createCheckoutSession = (req, res) => __awaiter(void 0, void 0, void 0, fu
             return res.status(401).json({ message: 'Authentication required.' });
         }
         // Get user info to create or retrieve Stripe customer
-        const user = yield index_1.prisma.user.findUnique({
-            where: { id: userId },
-        });
+        const user = yield queries_1.userQueries.findById(userId);
         if (!user) {
             return res.status(404).json({ message: 'User not found.' });
         }
         // Create or get Stripe customer ID
-        let stripeCustomerId = user.stripeCustomerId;
+        let stripeCustomerId = user.stripe_customer_id;
         if (!stripeCustomerId) {
             stripeCustomerId = yield stripeService.createCustomer(user.email, user.name);
             // Update user with Stripe customer ID
-            yield index_1.prisma.user.update({
-                where: { id: userId },
-                data: { stripeCustomerId },
-            });
+            yield queries_1.userQueries.update(userId, { stripe_customer_id: stripeCustomerId });
         }
         // Create checkout session
         const successUrl = `${req.headers.origin}/subscription/success?session_id={CHECKOUT_SESSION_ID}`;
@@ -119,15 +115,13 @@ const createCustomerPortalSession = (req, res) => __awaiter(void 0, void 0, void
             return res.status(401).json({ message: 'Authentication required.' });
         }
         // Get user info to retrieve Stripe customer
-        const user = yield index_1.prisma.user.findUnique({
-            where: { id: userId },
-        });
-        if (!user || !user.stripeCustomerId) {
+        const user = yield queries_1.userQueries.findById(userId);
+        if (!user || !user.stripe_customer_id) {
             return res.status(404).json({ message: 'No subscription found.' });
         }
         // Create customer portal session
         const returnUrl = `${req.headers.origin}/settings`;
-        const portalUrl = yield stripeService.createCustomerPortalSession(user.stripeCustomerId, returnUrl);
+        const portalUrl = yield stripeService.createCustomerPortalSession(user.stripe_customer_id, returnUrl);
         return res.status(200).json({ url: portalUrl });
     }
     catch (error) {
@@ -145,17 +139,14 @@ const getCurrentSubscription = (req, res) => __awaiter(void 0, void 0, void 0, f
             return res.status(401).json({ message: 'Authentication required.' });
         }
         // Get user info to retrieve Stripe customer
-        const user = yield index_1.prisma.user.findUnique({
-            where: { id: userId },
-            include: {
-                subscription: true,
-            },
-        });
+        const user = yield queries_1.userQueries.findById(userId);
         if (!user) {
             return res.status(404).json({ message: 'User not found.' });
         }
+        // Get subscription from database
+        const subscription = yield queries_1.subscriptionQueries.findByUserId(userId);
         // If no subscription data in our DB, return free plan
-        if (!user.subscription || !user.subscription.stripeSubscriptionId) {
+        if (!subscription || !subscription.stripe_subscription_id) {
             return res.status(200).json({
                 plan: 'free',
                 status: 'active',
@@ -164,12 +155,12 @@ const getCurrentSubscription = (req, res) => __awaiter(void 0, void 0, void 0, f
         }
         // Get subscription details from Stripe
         try {
-            const subscription = yield stripeService.getSubscription(user.subscription.stripeSubscriptionId);
+            const stripeSubscription = yield stripeService.getSubscription(subscription.stripe_subscription_id);
             return res.status(200).json({
-                plan: user.subscription.planId,
-                status: subscription.status,
-                currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-                cancelAtPeriodEnd: subscription.cancel_at_period_end,
+                plan: subscription.plan_id,
+                status: stripeSubscription.status,
+                currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+                cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
             });
         }
         catch (error) {
@@ -203,44 +194,30 @@ const handleWebhook = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                 return res.status(400).json({ message: 'Invalid event data' });
             }
             // Find user by Stripe customer ID
-            const user = yield index_1.prisma.user.findFirst({
-                where: { stripeCustomerId: subscription.customer },
-            });
+            const user = yield queries_1.userQueries.updateByEmail('', { stripe_customer_id: subscription.customer });
             if (!user) {
                 return res.status(404).json({ message: 'User not found' });
             }
             // Update subscription in our database
             if (event.event === 'customer.subscription.created' ||
                 event.event === 'customer.subscription.updated') {
-                // Get the price ID (plan)
-                const priceId = subscription.items.data[0].price.id;
-                // Update or create subscription record
-                yield index_1.prisma.subscription.upsert({
-                    where: { userId: user.id },
-                    update: {
-                        status: subscription.status,
-                        currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-                    },
-                    create: {
-                        userId: user.id,
-                        planId: priceId,
-                        status: subscription.status,
-                        currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-                        stripeSubscriptionId: subscription.id,
-                    },
+                yield queries_1.subscriptionQueries.upsert({
+                    id: (0, uuid_1.v4)(),
+                    user_id: user.id,
+                    plan_id: subscription.items.data[0].price.id,
+                    status: subscription.status,
+                    current_period_end: new Date(subscription.current_period_end * 1000),
+                    stripe_subscription_id: subscription.id,
                 });
             }
             else if (event.event === 'customer.subscription.deleted') {
-                // Delete subscription record
-                yield index_1.prisma.subscription.delete({
-                    where: { userId: user.id },
-                });
+                yield queries_1.subscriptionQueries.delete(user.id);
             }
         }
         return res.status(200).json({ received: true });
     }
     catch (error) {
-        console.error('Error processing webhook:', error);
+        console.error('Webhook error:', error);
         return res.status(400).json({ message: 'Webhook error' });
     }
 });

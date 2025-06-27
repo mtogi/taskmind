@@ -29,7 +29,22 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     // Extract the token
     const token = authHeader.split(' ')[1];
 
-    // Verify the token
+    // Special handling for test account with mock token
+    if (token === 'mock-jwt-token-for-testing') {
+      // For test account, find the user by email
+      const testUser = await userQueries.findByEmail('test@taskmind.dev');
+      
+      if (!testUser) {
+        return res.status(401).json({ message: 'Test user not found.' });
+      }
+
+      // Add the user to the request object
+      req.user = { id: testUser.id };
+      next();
+      return;
+    }
+
+    // Regular JWT verification for real tokens
     const decoded = jwt.verify(token, config.jwtSecret) as DecodedToken;
 
     // Check if the user exists

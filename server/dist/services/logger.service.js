@@ -78,8 +78,8 @@ const logAccess = (req, res, responseTime) => {
             ip: req.ip,
             userAgent: req.get('user-agent'),
             requestBody: req.method !== 'GET' ? req.body : undefined,
-            requestQuery: Object.keys(req.query).length ? req.query : undefined,
-            requestParams: Object.keys(req.params).length ? req.params : undefined,
+            requestQuery: req.query && Object.keys(req.query).length ? req.query : undefined,
+            requestParams: req.params && Object.keys(req.params).length ? req.params : undefined,
         };
         (0, exports.logWarn)(`HTTP ${res.statusCode} response`, errorDetails);
     }

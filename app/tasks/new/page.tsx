@@ -46,7 +46,7 @@ export default function NewTaskPage() {
   const [status, setStatus] = useState("TODO")
   const [priority, setPriority] = useState("MEDIUM")
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined)
-  const [projectId, setProjectId] = useState<string | undefined>(undefined)
+  const [projectId, setProjectId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [activeTab, setActiveTab] = useState("form")
   const [projects, setProjects] = useState<Project[]>([
@@ -72,7 +72,7 @@ export default function NewTaskPage() {
         status,
         priority,
         dueDate,
-        projectId,
+        projectId: projectId || undefined,
       }
       
       await taskApi.createTask(taskData)
@@ -142,30 +142,12 @@ export default function NewTaskPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="status">Status</Label>
-                        <Select value={status} onValueChange={setStatus}>
-                          <SelectTrigger id="status">
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="TODO">To Do</SelectItem>
-                            <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                            <SelectItem value="DONE">Completed</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Input value={status} onChange={(e) => setStatus(e.target.value)} placeholder="TODO" />
                       </div>
                       
                       <div className="space-y-2">
                         <Label htmlFor="priority">Priority</Label>
-                        <Select value={priority} onValueChange={setPriority}>
-                          <SelectTrigger id="priority">
-                            <SelectValue placeholder="Select priority" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="LOW">Low</SelectItem>
-                            <SelectItem value="MEDIUM">Medium</SelectItem>
-                            <SelectItem value="HIGH">High</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Input value={priority} onChange={(e) => setPriority(e.target.value)} placeholder="MEDIUM" />
                       </div>
                       
                       <div className="space-y-2">
@@ -194,19 +176,7 @@ export default function NewTaskPage() {
                       
                       <div className="space-y-2">
                         <Label htmlFor="project">Project</Label>
-                        <Select value={projectId} onValueChange={setProjectId}>
-                          <SelectTrigger id="project">
-                            <SelectValue placeholder="Select project" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="">None</SelectItem>
-                            {projects.map((project) => (
-                              <SelectItem key={project.id} value={project.id}>
-                                {project.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Input value={projectId || ""} onChange={(e) => setProjectId(e.target.value || null)} placeholder="Select project" />
                       </div>
                     </div>
                   </div>

@@ -51,3 +51,48 @@
   "address": "::",
   "port": 5000
 }
+[2025-06-27 13:43:12] [WARN] HTTP 401 response
+{
+  "method": "GET",
+  "url": "/api/tasks",
+  "statusCode": 401,
+  "responseTime": 30,
+  "ip": "::ffff:127.0.0.1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0"
+}
+[2025-06-27 14:03:01] [WARN] HTTP 404 response
+{
+  "method": "GET",
+  "url": "/api/user/profile",
+  "statusCode": 404,
+  "responseTime": 11,
+  "ip": "::ffff:127.0.0.1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0"
+}
+[2025-06-27 14:03:01] [WARN] HTTP 404 response
+{
+  "method": "GET",
+  "url": "/api/user/profile",
+  "statusCode": 404,
+  "responseTime": 23,
+  "ip": "::ffff:127.0.0.1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0"
+}
+[2025-06-27 14:10:21] [WARN] HTTP 404 response
+{
+  "method": "GET",
+  "url": "/api/user/profile",
+  "statusCode": 404,
+  "responseTime": 4,
+  "ip": "::ffff:127.0.0.1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0"
+}
+[2025-06-27 14:10:21] [WARN] HTTP 404 response
+{
+  "method": "GET",
+  "url": "/api/user/profile",
+  "statusCode": 404,
+  "responseTime": 5,
+  "ip": "::ffff:127.0.0.1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0"
+}

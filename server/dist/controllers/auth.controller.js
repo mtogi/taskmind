@@ -15,27 +15,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.login = exports.register = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
-const index_1 = require("../index");
+const uuid_1 = require("uuid");
+const queries_1 = require("../database/queries");
 const config_1 = __importDefault(require("../config/config"));
 const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { email, password, name } = req.body;
         // Check if the user already exists
-        const existingUser = yield index_1.prisma.user.findUnique({
-            where: { email },
-        });
+        const existingUser = yield queries_1.userQueries.findByEmail(email);
         if (existingUser) {
             return res.status(400).json({ message: 'User already exists with this email.' });
         }
         // Hash the password
         const hashedPassword = yield bcrypt_1.default.hash(password, 12);
         // Create the user
-        const user = yield index_1.prisma.user.create({
-            data: {
-                email,
-                password: hashedPassword,
-                name,
-            },
+        const user = yield queries_1.userQueries.create({
+            id: (0, uuid_1.v4)(),
+            email,
+            password: hashedPassword,
+            name,
         });
         // Generate a JWT token
         const jwtSecret = config_1.default.jwtSecret;
@@ -62,9 +60,7 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { email, password } = req.body;
         // Check if the user exists
-        const user = yield index_1.prisma.user.findUnique({
-            where: { email },
-        });
+        const user = yield queries_1.userQueries.findByEmail(email);
         if (!user) {
             return res.status(401).json({ message: 'Invalid email or password.' });
         }

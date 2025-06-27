@@ -45,11 +45,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.prisma = void 0;
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const morgan_1 = __importDefault(require("morgan"));
-const prisma_1 = require("./generated/prisma");
 const config_1 = __importDefault(require("./config/config"));
 // Import routes
 const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
@@ -60,10 +58,10 @@ const subscription_routes_1 = __importDefault(require("./routes/subscription.rou
 // Import services
 const schedulerService = __importStar(require("./services/scheduler.service"));
 const logger = __importStar(require("./services/logger.service"));
+// Import database connection
+const connection_1 = require("./database/connection");
 // Import security middleware
 const security_middleware_1 = require("./middleware/security.middleware");
-// Initialize Prisma client
-exports.prisma = new prisma_1.PrismaClient();
 // Initialize Express app
 const app = (0, express_1.default)();
 const PORT = config_1.default.port;
@@ -97,14 +95,29 @@ app.use((err, req, res, next) => {
     });
 });
 // Start server
-app.listen(PORT, () => {
-    logger.logInfo(`Server running on port ${PORT}`);
-    // Initialize task scheduler
-    if (config_1.default.enableScheduler) {
-        schedulerService.initScheduler();
-        logger.logInfo('Task scheduler initialized');
+const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        // Test database connection
+        const dbConnected = yield (0, connection_1.testConnection)();
+        if (!dbConnected) {
+            logger.logError('Failed to connect to database. Exiting...');
+            process.exit(1);
+        }
+        app.listen(PORT, () => {
+            logger.logInfo(`Server running on port ${PORT}`);
+            // Initialize task scheduler
+            if (config_1.default.enableScheduler) {
+                schedulerService.initScheduler();
+                logger.logInfo('Task scheduler initialized');
+            }
+        });
+    }
+    catch (error) {
+        logger.logError('Failed to start server:', error);
+        process.exit(1);
     }
 });
+startServer();
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
     logger.logError('Unhandled Promise Rejection', err);
@@ -120,7 +133,7 @@ process.on('SIGTERM', () => __awaiter(void 0, void 0, void 0, function* () {
     logger.logInfo('SIGTERM received, shutting down gracefully');
     // Stop scheduler
     schedulerService.stopScheduler();
-    // Disconnect Prisma
-    yield exports.prisma.$disconnect();
+    // Close database connection
+    yield (0, connection_1.closeConnection)();
     process.exit(0);
 }));
