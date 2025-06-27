@@ -1,14 +1,7 @@
 import nodemailer from 'nodemailer';
-import { PrismaClient } from '@prisma/client';
 import config from '../config/config';
 import { formatDistanceToNow } from 'date-fns';
-
-// Define User interface to match the Prisma User model
-interface User {
-  id: string;
-  email: string;
-  name: string;
-}
+import { DatabaseUser } from '../database/connection';
 
 // Create nodemailer transporter
 const transporter = nodemailer.createTransport({
@@ -112,7 +105,7 @@ const EMAIL_TEMPLATES = {
 
 // Send task reminder email
 export const sendTaskReminder = async (
-  user: User,
+  user: DatabaseUser,
   taskTitle: string,
   dueDate: Date
 ): Promise<boolean> => {
@@ -141,7 +134,7 @@ export const sendTaskReminder = async (
 
 // Send welcome email
 export const sendWelcomeEmail = async (
-  user: User,
+  user: DatabaseUser,
   verificationLink?: string
 ): Promise<boolean> => {
   try {
@@ -168,7 +161,7 @@ export const sendWelcomeEmail = async (
 
 // Send password reset email
 export const sendPasswordResetEmail = async (
-  user: User,
+  user: DatabaseUser,
   resetToken: string
 ): Promise<boolean> => {
   try {

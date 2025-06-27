@@ -1,0 +1,53 @@
+[2025-06-26 12:08:39] [WARN] HTTP 500 response
+{
+  "method": "POST",
+  "url": "/api/auth/register",
+  "statusCode": 500,
+  "responseTime": 51,
+  "ip": "::ffff:127.0.0.1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:139.0) Gecko/20100101 Firefox/139.0",
+  "requestBody": {
+    "name": "Toygar Baykal",
+    "email": "mtoygarby@gmail.com",
+    "password": "Password1"
+  }
+}
+[2025-06-26 12:08:53] [WARN] HTTP 500 response
+{
+  "method": "POST",
+  "url": "/api/auth/register",
+  "statusCode": 500,
+  "responseTime": 8,
+  "ip": "::ffff:127.0.0.1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:139.0) Gecko/20100101 Firefox/139.0",
+  "requestBody": {
+    "name": "Toygar Baykal",
+    "email": "mtoygarby@gmail.com",
+    "password": "Password1"
+  }
+}
+[2025-06-27 13:07:28] [ERROR] Uncaught Exception
+{
+  "message": "Cannot convert undefined or null to object",
+  "stack": "TypeError: Cannot convert undefined or null to object\n    at Function.keys (<anonymous>)\n    at logAccess (C:\\Users\\mtoyg\\projeler\\TaskMind\\taskmind\\server\\src\\services\\logger.service.ts:91:29)\n    at ServerResponse.<anonymous> (C:\\Users\\mtoyg\\projeler\\TaskMind\\taskmind\\server\\src\\services\\logger.service.ts:107:14)\n    at ServerResponse.emit (node:events:530:35)\n    at ServerResponse.emit (node:domain:488:12)\n    at onFinish (node:_http_outgoing:1005:10)\n    at callback (node:internal/streams/writable:756:21)\n    at afterWrite (node:internal/streams/writable:701:5)\n    at afterWriteTick (node:internal/streams/writable:687:10)\n    at processTicksAndRejections (node:internal/process/task_queues:81:21)"
+}
+[2025-06-27 13:11:02] [ERROR] Uncaught Exception
+{
+  "message": "Cannot convert undefined or null to object",
+  "stack": "TypeError: Cannot convert undefined or null to object\n    at Function.keys (<anonymous>)\n    at logAccess (C:\\Users\\mtoyg\\projeler\\TaskMind\\taskmind\\server\\src\\services\\logger.service.ts:91:29)\n    at ServerResponse.<anonymous> (C:\\Users\\mtoyg\\projeler\\TaskMind\\taskmind\\server\\src\\services\\logger.service.ts:107:14)\n    at ServerResponse.emit (node:events:530:35)\n    at ServerResponse.emit (node:domain:488:12)\n    at onFinish (node:_http_outgoing:1005:10)\n    at callback (node:internal/streams/writable:756:21)\n    at afterWrite (node:internal/streams/writable:701:5)\n    at afterWriteTick (node:internal/streams/writable:687:10)\n    at processTicksAndRejections (node:internal/process/task_queues:81:21)"
+}
+[2025-06-27 13:11:59] [ERROR] Uncaught Exception
+{
+  "message": "Cannot convert undefined or null to object",
+  "stack": "TypeError: Cannot convert undefined or null to object\n    at Function.keys (<anonymous>)\n    at logAccess (C:\\Users\\mtoyg\\projeler\\TaskMind\\taskmind\\server\\src\\services\\logger.service.ts:91:29)\n    at ServerResponse.<anonymous> (C:\\Users\\mtoyg\\projeler\\TaskMind\\taskmind\\server\\src\\services\\logger.service.ts:107:14)\n    at ServerResponse.emit (node:events:530:35)\n    at ServerResponse.emit (node:domain:488:12)\n    at onFinish (node:_http_outgoing:1005:10)\n    at callback (node:internal/streams/writable:756:21)\n    at afterWrite (node:internal/streams/writable:701:5)\n    at afterWriteTick (node:internal/streams/writable:687:10)\n    at processTicksAndRejections (node:internal/process/task_queues:81:21)"
+}
+[2025-06-27 13:14:37] [ERROR] Uncaught Exception
+{
+  "message": "listen EADDRINUSE: address already in use :::5000",
+  "stack": "Error: listen EADDRINUSE: address already in use :::5000\n    at Server.setupListenHandle [as _listen2] (node:net:1872:16)\n    at listenInCluster (node:net:1920:12)\n    at Server.listen (node:net:2008:7)\n    at Function.listen (C:\\Users\\mtoyg\\projeler\\TaskMind\\taskmind\\server\\node_modules\\express\\lib\\application.js:635:24)\n    at C:\\Users\\mtoyg\\projeler\\TaskMind\\taskmind\\server\\src\\index.ts:79:9\n    at Generator.next (<anonymous>)\n    at fulfilled (C:\\Users\\mtoyg\\projeler\\TaskMind\\taskmind\\server\\src\\index.ts:38:58)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)",
+  "code": "EADDRINUSE",
+  "errno": -4091,
+  "syscall": "listen",
+  "address": "::",
+  "port": 5000
+}

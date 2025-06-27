@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import config from '../config/config';
-import { prisma } from '../index';
+import { userQueries } from '../database/queries';
 
 interface DecodedToken {
   userId: string;
@@ -33,9 +33,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     const decoded = jwt.verify(token, config.jwtSecret) as DecodedToken;
 
     // Check if the user exists
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-    });
+    const user = await userQueries.findById(decoded.userId);
 
     if (!user) {
       return res.status(401).json({ message: 'User not found.' });

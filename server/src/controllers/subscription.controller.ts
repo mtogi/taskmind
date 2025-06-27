@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import { prisma } from '../index';
+import { v4 as uuidv4 } from 'uuid';
+import { userQueries, subscriptionQueries } from '../database/queries';
 import * as stripeService from '../services/stripe.service';
 
 // Get available subscription plans
@@ -38,25 +39,20 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
     }
     
     // Get user info to create or retrieve Stripe customer
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
+    const user = await userQueries.findById(userId);
     
     if (!user) {
       return res.status(404).json({ message: 'User not found.' });
     }
     
     // Create or get Stripe customer ID
-    let stripeCustomerId = user.stripeCustomerId;
+    let stripeCustomerId = user.stripe_customer_id;
     
     if (!stripeCustomerId) {
       stripeCustomerId = await stripeService.createCustomer(user.email, user.name);
       
       // Update user with Stripe customer ID
-      await prisma.user.update({
-        where: { id: userId },
-        data: { stripeCustomerId },
-      });
+      await userQueries.update(userId, { stripe_customer_id: stripeCustomerId });
     }
     
     // Create checkout session
@@ -87,18 +83,16 @@ export const createCustomerPortalSession = async (req: Request, res: Response) =
     }
     
     // Get user info to retrieve Stripe customer
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
+    const user = await userQueries.findById(userId);
     
-    if (!user || !user.stripeCustomerId) {
+    if (!user || !user.stripe_customer_id) {
       return res.status(404).json({ message: 'No subscription found.' });
     }
     
     // Create customer portal session
     const returnUrl = `${req.headers.origin}/settings`;
     const portalUrl = await stripeService.createCustomerPortalSession(
-      user.stripeCustomerId,
+      user.stripe_customer_id,
       returnUrl
     );
     
@@ -119,19 +113,17 @@ export const getCurrentSubscription = async (req: Request, res: Response) => {
     }
     
     // Get user info to retrieve Stripe customer
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        subscription: true,
-      },
-    });
+    const user = await userQueries.findById(userId);
     
     if (!user) {
       return res.status(404).json({ message: 'User not found.' });
     }
     
+    // Get subscription from database
+    const subscription = await subscriptionQueries.findByUserId(userId);
+    
     // If no subscription data in our DB, return free plan
-    if (!user.subscription || !user.subscription.stripeSubscriptionId) {
+    if (!subscription || !subscription.stripe_subscription_id) {
       return res.status(200).json({
         plan: 'free',
         status: 'active',
@@ -141,15 +133,15 @@ export const getCurrentSubscription = async (req: Request, res: Response) => {
     
     // Get subscription details from Stripe
     try {
-      const subscription = await stripeService.getSubscription(
-        user.subscription.stripeSubscriptionId
+      const stripeSubscription = await stripeService.getSubscription(
+        subscription.stripe_subscription_id
       );
       
       return res.status(200).json({
-        plan: user.subscription.planId,
-        status: subscription.status,
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-        cancelAtPeriodEnd: subscription.cancel_at_period_end,
+        plan: subscription.plan_id,
+        status: stripeSubscription.status,
+        currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+        cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
       });
     } catch (error) {
       // If Stripe subscription no longer exists, reset to free plan
@@ -186,9 +178,7 @@ export const handleWebhook = async (req: Request, res: Response) => {
       }
       
       // Find user by Stripe customer ID
-      const user = await prisma.user.findFirst({
-        where: { stripeCustomerId: subscription.customer as string },
-      });
+      const user = await userQueries.updateByEmail('', { stripe_customer_id: subscription.customer as string });
       
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
@@ -198,35 +188,22 @@ export const handleWebhook = async (req: Request, res: Response) => {
       if (event.event === 'customer.subscription.created' || 
           event.event === 'customer.subscription.updated') {
         
-        // Get the price ID (plan)
-        const priceId = subscription.items.data[0].price.id;
-        
-        // Update or create subscription record
-        await prisma.subscription.upsert({
-          where: { userId: user.id },
-          update: {
-            status: subscription.status,
-            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-          },
-          create: {
-            userId: user.id,
-            planId: priceId,
-            status: subscription.status,
-            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-            stripeSubscriptionId: subscription.id,
-          },
+        await subscriptionQueries.upsert({
+          id: uuidv4(),
+          user_id: user.id,
+          plan_id: subscription.items.data[0].price.id,
+          status: subscription.status,
+          current_period_end: new Date(subscription.current_period_end * 1000),
+          stripe_subscription_id: subscription.id,
         });
       } else if (event.event === 'customer.subscription.deleted') {
-        // Delete subscription record
-        await prisma.subscription.delete({
-          where: { userId: user.id },
-        });
+        await subscriptionQueries.delete(user.id);
       }
     }
     
     return res.status(200).json({ received: true });
   } catch (error) {
-    console.error('Error processing webhook:', error);
+    console.error('Webhook error:', error);
     return res.status(400).json({ message: 'Webhook error' });
   }
 }; 

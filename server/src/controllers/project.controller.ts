@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import { prisma } from '../index';
+import { v4 as uuidv4 } from 'uuid';
+import { projectQueries, taskQueries } from '../database/queries';
 
 // Get all projects for the authenticated user
 export const getProjects = async (req: Request, res: Response) => {
@@ -10,38 +11,7 @@ export const getProjects = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'Authentication required.' });
     }
 
-    const projects = await prisma.project.findMany({
-      where: {
-        OR: [
-          { ownerId: userId },
-          { members: { some: { id: userId } } },
-        ],
-      },
-      include: {
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        members: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        _count: {
-          select: {
-            tasks: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    const projects = await projectQueries.findByUserId(userId);
 
     return res.status(200).json(projects);
   } catch (error) {
@@ -60,51 +30,30 @@ export const getProjectById = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'Authentication required.' });
     }
 
-    const project = await prisma.project.findFirst({
-      where: {
-        id,
-        OR: [
-          { ownerId: userId },
-          { members: { some: { id: userId } } },
-        ],
-      },
-      include: {
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        members: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        tasks: {
-          orderBy: {
-            createdAt: 'desc',
-          },
-          include: {
-            assignee: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-          },
-        },
-      },
-    });
+    const project = await projectQueries.findById(id);
 
     if (!project) {
       return res.status(404).json({ message: 'Project not found.' });
     }
 
-    return res.status(200).json(project);
+    // Check if user has access to the project
+    const members = await projectQueries.getMembers(id);
+    const hasAccess = project.owner_id === userId || members.some(member => member.id === userId);
+
+    if (!hasAccess) {
+      return res.status(403).json({ message: 'Access denied.' });
+    }
+
+    // Get project tasks
+    const tasks = await taskQueries.findByProjectId(id);
+
+    const projectWithTasks = {
+      ...project,
+      tasks,
+      members,
+    };
+
+    return res.status(200).json(projectWithTasks);
   } catch (error) {
     console.error('Error fetching project:', error);
     return res.status(500).json({ message: 'Error fetching project.' });
@@ -126,41 +75,28 @@ export const createProject = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Project name is required.' });
     }
 
-    // Prepare member connections if provided
-    const memberConnections = memberIds && memberIds.length > 0
-      ? {
-          connect: memberIds.map((id: string) => ({ id })),
-        }
-      : undefined;
-
-    const project = await prisma.project.create({
-      data: {
-        name,
-        description,
-        owner: {
-          connect: { id: userId },
-        },
-        members: memberConnections,
-      },
-      include: {
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        members: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
+    const project = await projectQueries.create({
+      id: uuidv4(),
+      name,
+      description,
+      owner_id: userId,
     });
 
-    return res.status(201).json(project);
+    // Add members if provided
+    if (memberIds && memberIds.length > 0) {
+      for (const memberId of memberIds) {
+        await projectQueries.addMember(project.id, memberId);
+      }
+    }
+
+    // Get the created project with members
+    const members = await projectQueries.getMembers(project.id);
+    const projectWithMembers = {
+      ...project,
+      members,
+    };
+
+    return res.status(201).json(projectWithMembers);
   } catch (error) {
     console.error('Error creating project:', error);
     return res.status(500).json({ message: 'Error creating project.' });
@@ -179,53 +115,51 @@ export const updateProject = async (req: Request, res: Response) => {
     }
 
     // Check if the project exists and user is the owner
-    const existingProject = await prisma.project.findFirst({
-      where: {
-        id,
-        ownerId: userId,
-      },
-    });
+    const existingProject = await projectQueries.findById(id);
 
     if (!existingProject) {
-      return res.status(404).json({ 
-        message: 'Project not found or you do not have permission to update it.' 
+      return res.status(404).json({ message: 'Project not found.' });
+    }
+
+    if (existingProject.owner_id !== userId) {
+      return res.status(403).json({ 
+        message: 'You do not have permission to update this project.' 
       });
     }
 
-    // Prepare member connections if provided
-    let memberUpdateOperation;
-    if (memberIds) {
-      memberUpdateOperation = {
-        set: memberIds.map((id: string) => ({ id })),
-      };
+    // Update project
+    const updates: any = {};
+    if (name !== undefined) updates.name = name;
+    if (description !== undefined) updates.description = description;
+
+    const updatedProject = await projectQueries.update(id, updates);
+
+    if (!updatedProject) {
+      return res.status(404).json({ message: 'Project not found.' });
     }
 
-    const updatedProject = await prisma.project.update({
-      where: { id },
-      data: {
-        name,
-        description,
-        members: memberUpdateOperation,
-      },
-      include: {
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        members: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
-    });
+    // Update members if provided
+    if (memberIds) {
+      // Remove all current members
+      const currentMembers = await projectQueries.getMembers(id);
+      for (const member of currentMembers) {
+        await projectQueries.removeMember(id, member.id);
+      }
 
-    return res.status(200).json(updatedProject);
+      // Add new members
+      for (const memberId of memberIds) {
+        await projectQueries.addMember(id, memberId);
+      }
+    }
+
+    // Get updated project with members
+    const members = await projectQueries.getMembers(id);
+    const projectWithMembers = {
+      ...updatedProject,
+      members,
+    };
+
+    return res.status(200).json(projectWithMembers);
   } catch (error) {
     console.error('Error updating project:', error);
     return res.status(500).json({ message: 'Error updating project.' });
@@ -243,30 +177,23 @@ export const deleteProject = async (req: Request, res: Response) => {
     }
 
     // Check if the project exists and user is the owner
-    const existingProject = await prisma.project.findFirst({
-      where: {
-        id,
-        ownerId: userId,
-      },
-    });
+    const existingProject = await projectQueries.findById(id);
 
     if (!existingProject) {
-      return res.status(404).json({ 
-        message: 'Project not found or you do not have permission to delete it.' 
+      return res.status(404).json({ message: 'Project not found.' });
+    }
+
+    if (existingProject.owner_id !== userId) {
+      return res.status(403).json({ 
+        message: 'You do not have permission to delete this project.' 
       });
     }
 
-    // Delete all tasks associated with the project first
-    await prisma.task.deleteMany({
-      where: {
-        projectId: id,
-      },
-    });
+    const deleted = await projectQueries.delete(id);
 
-    // Delete the project
-    await prisma.project.delete({
-      where: { id },
-    });
+    if (!deleted) {
+      return res.status(404).json({ message: 'Project not found.' });
+    }
 
     return res.status(200).json({ message: 'Project deleted successfully.' });
   } catch (error) {
@@ -285,78 +212,38 @@ export const getProjectStats = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'Authentication required.' });
     }
 
-    // Check if the project exists and user has access
-    const existingProject = await prisma.project.findFirst({
-      where: {
-        id,
-        OR: [
-          { ownerId: userId },
-          { members: { some: { id: userId } } },
-        ],
-      },
-    });
+    const project = await projectQueries.findById(id);
 
-    if (!existingProject) {
+    if (!project) {
       return res.status(404).json({ message: 'Project not found.' });
     }
 
-    // Get task counts by status
-    const taskStats = await prisma.task.groupBy({
-      by: ['status'],
-      where: {
-        projectId: id,
-      },
-      _count: {
-        status: true,
-      },
-    });
+    // Check if user has access to the project
+    const members = await projectQueries.getMembers(id);
+    const hasAccess = project.owner_id === userId || members.some(member => member.id === userId);
 
-    // Get task counts by priority
-    const priorityStats = await prisma.task.groupBy({
-      by: ['priority'],
-      where: {
-        projectId: id,
-      },
-      _count: {
-        priority: true,
-      },
-    });
+    if (!hasAccess) {
+      return res.status(403).json({ message: 'Access denied.' });
+    }
 
-    // Get count of overdue tasks
-    const now = new Date();
-    const overdueTasksCount = await prisma.task.count({
-      where: {
-        projectId: id,
-        dueDate: {
-          lt: now,
-        },
-        status: {
-          not: 'DONE',
-        },
-      },
-    });
+    // Get project tasks
+    const tasks = await taskQueries.findByProjectId(id);
 
-    // Format the statistics
-    const statistics = {
-      tasksByStatus: taskStats.reduce((acc: Record<string, number>, curr: { status: string; _count: { status: number } }) => {
-        acc[curr.status] = curr._count.status;
-        return acc;
-      }, {}),
-      tasksByPriority: priorityStats.reduce((acc: Record<string, number>, curr: { priority: string; _count: { priority: number } }) => {
-        acc[curr.priority] = curr._count.priority;
-        return acc;
-      }, {}),
-      overdueTasks: overdueTasksCount,
-      totalTasks: await prisma.task.count({
-        where: {
-          projectId: id,
-        },
-      }),
+    // Calculate statistics
+    const stats = {
+      totalTasks: tasks.length,
+      completedTasks: tasks.filter(task => task.status === 'DONE').length,
+      inProgressTasks: tasks.filter(task => task.status === 'IN_PROGRESS').length,
+      pendingTasks: tasks.filter(task => task.status === 'TODO').length,
+      highPriorityTasks: tasks.filter(task => task.priority === 'HIGH').length,
+      overdueTasks: tasks.filter(task => 
+        task.due_date && new Date(task.due_date) < new Date() && task.status !== 'DONE'
+      ).length,
     };
 
-    return res.status(200).json(statistics);
+    return res.status(200).json(stats);
   } catch (error) {
-    console.error('Error fetching project statistics:', error);
+    console.error('Error fetching project stats:', error);
     return res.status(500).json({ message: 'Error fetching project statistics.' });
   }
 }; 

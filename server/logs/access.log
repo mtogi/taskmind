@@ -1,0 +1,7 @@
+[2025-06-26 12:08:39] POST /api/auth/register 500 51ms
+[2025-06-26 12:08:53] POST /api/auth/register 500 8ms
+[2025-06-27 13:11:02] GET / 200 9ms
+[2025-06-27 13:11:59] GET / 304 6ms
+[2025-06-27 13:21:58] POST /api/auth/register 201 543ms
+[2025-06-27 13:22:21] GET /api/tasks 200 72ms
+[2025-06-27 13:22:21] GET /api/tasks 304 63ms

@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
-import { PrismaClient } from './generated/prisma';
 import config from './config/config';
 
 // Import routes
@@ -15,6 +14,9 @@ import subscriptionRoutes from './routes/subscription.routes';
 import * as schedulerService from './services/scheduler.service';
 import * as logger from './services/logger.service';
 
+// Import database connection
+import { testConnection, closeConnection } from './database/connection';
+
 // Import security middleware
 import {
   apiLimiter,
@@ -23,9 +25,6 @@ import {
   preventParamPollution,
   sanitizeData,
 } from './middleware/security.middleware';
-
-// Initialize Prisma client
-export const prisma = new PrismaClient();
 
 // Initialize Express app
 const app = express();
@@ -68,15 +67,31 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 });
 
 // Start server
-app.listen(PORT, () => {
-  logger.logInfo(`Server running on port ${PORT}`);
-  
-  // Initialize task scheduler
-  if (config.enableScheduler) {
-    schedulerService.initScheduler();
-    logger.logInfo('Task scheduler initialized');
+const startServer = async () => {
+  try {
+    // Test database connection
+    const dbConnected = await testConnection();
+    if (!dbConnected) {
+      logger.logError('Failed to connect to database. Exiting...');
+      process.exit(1);
+    }
+
+    app.listen(PORT, () => {
+      logger.logInfo(`Server running on port ${PORT}`);
+      
+      // Initialize task scheduler
+      if (config.enableScheduler) {
+        schedulerService.initScheduler();
+        logger.logInfo('Task scheduler initialized');
+      }
+    });
+  } catch (error) {
+    logger.logError('Failed to start server:', error);
+    process.exit(1);
   }
-});
+};
+
+startServer();
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err: any) => {
@@ -97,8 +112,8 @@ process.on('SIGTERM', async () => {
   // Stop scheduler
   schedulerService.stopScheduler();
   
-  // Disconnect Prisma
-  await prisma.$disconnect();
+  // Close database connection
+  await closeConnection();
   
   process.exit(0);
 }); 
